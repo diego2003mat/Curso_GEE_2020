@@ -1,5 +1,5 @@
 //1) AÑADO OBJETO DE AREA DE ESTUDIO
-Map.centerObject(cuenca);
+Map.centerObject(pnc);
 Map.addLayer(pnc,{}, 'Límite PNC', true);
 
 //2) AÑADO LAS IMÁGENES SENTINEL 2A Y FUNCIÓN DE MASCARA DE NUBES
