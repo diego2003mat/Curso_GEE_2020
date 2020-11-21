@@ -1,0 +1,209 @@
+//1) AÑADO OBJETO DE AREA DE ESTUDIO
+Map.centerObject(cuenca);
+Map.addLayer(pnc,{}, 'Límite PNC', true);
+
+//2) AÑADO LAS IMÁGENES SENTINEL 2A Y FUNCIÓN DE MASCARA DE NUBES
+/**
+ * Function to mask clouds using the Sentinel-2 QA band
+ * @param {ee.Image} image Sentinel-2 image
+ * @return {ee.Image} cloud masked Sentinel-2 image
+ */
+function maskS2clouds(image) {
+  var qa = image.select('QA60');
+
+  // Bits 10 and 11 are clouds and cirrus, respectively.
+  var cloudBitMask = 1 << 10;
+  var cirrusBitMask = 1 << 11;
+
+  // Both flags should be set to zero, indicating clear conditions.
+  var mask = qa.bitwiseAnd(cloudBitMask).eq(0)
+      .and(qa.bitwiseAnd(cirrusBitMask).eq(0));
+
+  return image.updateMask(mask).divide(10000);
+}
+//S2_SR: Level 2A (Surface reflectance)  -- S2: Level 1C(Top Of Atamosphere reflectance)
+var dataset_S2 = ee.ImageCollection('COPERNICUS/S2_SR')
+                  .filterDate('2020-02-06', '2020-08-30') //filtro por rango de fechas
+                  // Pre-filter to get less cloudy granules.
+                  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE',100)) //filtro por porcentaje de nubosidad
+                  .filterBounds(pnc) // filtro por límite del área del pnc 
+                  .map(maskS2clouds) // máscara de nubes
+                  .map(function(image){return image.clip(pnc)}); // recorte por límite del pnc
+
+var visualization = {
+  min: 0.0,
+  max: 0.3,
+  bands: ['B4', 'B3', 'B2'],
+};
+
+//print(dataset_S2);
+Map.addLayer(dataset_S2.mean(), visualization, 'RGB S2');
+
+// 3) AÑADO IMAGEN LANDSAT DE AREA DE ESTUDIO CON MÁSCARA DE NUBES
+/**
+ * Function to mask clouds based on the pixel_qa band of Landsat 8 SR data.
+ * @param {ee.Image} image input Landsat 8 SR image
+ * @return {ee.Image} cloudmasked Landsat 8 image
+ */
+function maskL8sr(image) {
+  // Bits 3 and 5 are cloud shadow and cloud, respectively.
+  var cloudShadowBitMask = (1 << 3);
+  var cloudsBitMask = (1 << 5);
+  // Get the pixel QA band.
+  var qa = image.select('pixel_qa');
+  // Both flags should be set to zero, indicating clear conditions.
+  var mask = qa.bitwiseAnd(cloudShadowBitMask).eq(0)
+                 .and(qa.bitwiseAnd(cloudsBitMask).eq(0));
+  return image.updateMask(mask);
+}
+
+var dataset_L8 = ee.ImageCollection('LANDSAT/LC08/C01/T1_SR')
+                  .filterDate('2020-02-01', '2020-08-30')
+                  // Pre-filter to get less cloudy granules.
+                  .filter(ee.Filter.lt('CLOUD_COVER',50)) //filtro por porcentaje de nubosidad
+                  .filterBounds(pnc) // filtro por límite del área del pnc
+                  .map(function(image){return image.clip(pnc)}) // recorte por límite del pnc
+                  .map(maskL8sr);
+
+//print(dataset_L8); //muestras los datos obtenidos de Landsat 8
+
+var visParams_L8 = {
+  bands: ['B4', 'B3', 'B2'],
+  min: 0,
+  max: 3000,
+  gamma: 1.4,
+};
+
+Map.addLayer(dataset_L8.median(), visParams_L8,"RGB Landsat");
+
+//4.1) INDICES DE VEGETACION SENTINEL 2
+var addNDVI_S2 = function(image) {
+return image.addBands(image.normalizedDifference(['B8', 'B4']).rename('NDVI'));
+};
+
+dataset_S2=dataset_S2.map(addNDVI_S2);
+
+var addEVI2_S2 = function(image) {
+var evi2 = image.expression(
+    '2.4 * (NIR - RED) / ((NIR + RED + 1))', {
+      'NIR': image.select('B8'),
+      'RED': image.select('B4')
+});
+return image.addBands(evi2.rename('EVI2'));
+};
+
+dataset_S2=dataset_S2.map(addEVI2_S2);
+
+
+//print(dataset_S2);
+Map.addLayer(dataset_S2.select("NDVI").median(), {},"NDVI S2");
+Map.addLayer(dataset_S2.select("EVI2").median(), {},"EVI2 S2");
+
+//4.2) INDICES DE VEGETACION LANDSAT 8
+var addNDVI_L8 = function(image) {
+return image.addBands(image.normalizedDifference(['B5', 'B4']).rename('NDVI'));
+};
+
+dataset_L8=dataset_L8.map(addNDVI_L8);
+
+var addEVI_L8 = function(image) {
+var evi_L8 = image.expression(
+    'G *(B5-B4)/(B5+C1*B4 - C2*B2 +L)', {
+      'G': 2.5,
+      'C1': 6,
+      'C2': 7.5,
+      'L': 2.5,
+      'B5': image.select('B5'),
+      'B4': image.select('B4'),
+      'B2': image.select('B2')
+});
+return image.addBands(evi_L8.rename('EVI'));
+};
+
+dataset_L8=dataset_L8.map(addEVI_L8);
+//print(dataset_L8);
+Map.addLayer(dataset_L8.select("NDVI").median(), {},"NDVI L8", false);
+Map.addLayer(dataset_L8.select("EVI").median(), {},"EVI L8", false);
+
+//5) ANALISIS TEMPORAL DE UN PARCHE DE BOSQUE
+var serie_L8 = ui.Chart.image.seriesByRegion(
+    dataset_L8, bosque_san_luis, ee.Reducer.mean(), 'NDVI', 30, 'system:time_start', 'label')
+        .setChartType('ScatterChart')
+        .setOptions({
+          title: 'Landsat L8 Bosque San Luis',
+          vAxis: {title: 'NDVI'},
+          lineWidth: 1,
+          pointSize: 4,
+});
+
+print(serie_L8);
+
+var serie_S2 = ui.Chart.image.seriesByRegion(
+    dataset_S2, bosque_san_luis, ee.Reducer.mean(), 'NDVI', 10, 'system:index', 'label')
+        .setChartType('ScatterChart')
+        .setOptions({
+          title: 'Sentinel 2A Bosque San Luis',
+          vAxis: {title: 'NDVI'},
+          lineWidth: 1,
+          pointSize: 4,
+});
+
+print(serie_S2);
+
+//6) ANALISIS DE INCENDIOS
+//https://un-spider.org/es/asesoria/practicas-recomendadas/practica-recomendada-mapeo-gravedad-quemaduras/paso-a-paso/qgis
+var addNBR_S2 = function(image) {
+return image.addBands(image.normalizedDifference(['B8A', 'B12']).rename('NBR'));
+};
+
+var previo_S2_incendios = ee.ImageCollection('COPERNICUS/S2_SR')
+                  .filterDate('2020-02-01', '2020-02-14') //filtro por rango de fechas
+                  // Pre-filter to get less cloudy granules.
+                  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE',100)) //filtro por porcentaje de nubosidad
+                  .filterBounds(azuay) // filtro por límite del área del pnc
+                  //.map(maskS2clouds) // máscara de nubes
+                  .map(function(image){return image.clip(azuay)}); // recorte por límite del pnc
+                  
+var post_S2_incendios = ee.ImageCollection('COPERNICUS/S2_SR')
+                  .filterDate('2020-11-01', '2020-11-06') //filtro por rango de fechas
+                  // Pre-filter to get less cloudy granules.
+                  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE',100)) //filtro por porcentaje de nubosidad
+                  .filterBounds(azuay) // filtro por límite del área del pnc
+                  //.map(maskS2clouds) // máscara de nubes
+                  .map(function(image){return image.clip(azuay)}); // recorte por límite del pnc
+
+previo_S2_incendios=previo_S2_incendios.map(addNBR_S2);
+post_S2_incendios=post_S2_incendios.map(addNBR_S2);
+
+var mosaic_previo=previo_S2_incendios.mosaic();
+var mosaic_post=post_S2_incendios.mosaic();
+
+// Cálculo delta NBR (dNBR)
+//dNBR = NBR pre-fuego - NBR post-fuego
+var dNBR = mosaic_previo.select('NBR').subtract(mosaic_post.select('NBR'))
+Map.addLayer(post_S2_incendios.mean(), leyenda_s2_incendios,"Azuay 12-8A-4 Sentinel");
+
+//Rangos https://un-spider.org/node/10959 
+// Define an SLD style of discrete intervals to apply to the image.
+var sld_intervals =
+  '<RasterSymbolizer>' +
+    '<ColorMap type="intervals" extended="false" >' +
+      '<ColorMapEntry color="#000000" quantity="0.66" label="0.44 a 0.66 Others" />' +
+      '<ColorMapEntry color="#EEEB2C" quantity="1" label=">0.66 High severity" />' +
+    '</ColorMap>' +
+  '</RasterSymbolizer>';
+  
+//Map.addLayer(mosaic_s2_incendios.select("NBR"), sld_intervals,"NBR Azuay Sentinel");
+Map.addLayer(dNBR.sldStyle(sld_intervals), {}, 'NBR Azuay Sentinel');
+
+//7) Guardar en drive
+Export.image.toDrive({
+    image: dNBR,
+    scale: 10, //tamaño de pixel
+    folder : "GEE_INSUMOS/", //carpeta de google drive donde se almacena
+     fileFormat: 'GeoTIFF', //formato de salida
+      crs: 'EPSG:32717',//datum de salida de archivo raster
+     maxPixels: 1e9,
+    region: azuay, //area de trabajo
+    description: 'delta_nbr_azuay_feb_nov_2020' //nombre del proceso
+  });
