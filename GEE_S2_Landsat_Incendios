@@ -197,6 +197,7 @@ var sld_intervals =
 Map.addLayer(dNBR.sldStyle(sld_intervals), {}, 'NBR Azuay Sentinel');
 
 //7) Guardar en drive
+//https://developers.google.com/earth-engine/guides/exporting
 Export.image.toDrive({
     image: dNBR,
     scale: 10, //tamaño de pixel
