@@ -200,7 +200,7 @@ Map.addLayer(dNBR.sldStyle(sld_intervals), {}, 'NBR Azuay Sentinel');
 Export.image.toDrive({
     image: dNBR,
     scale: 10, //tamaño de pixel
-    folder : "GEE_INSUMOS/", //carpeta de google drive donde se almacena
+    folder : "GEE_INSUMOS", //carpeta de google drive donde se almacena
      fileFormat: 'GeoTIFF', //formato de salida
       crs: 'EPSG:32717',//datum de salida de archivo raster
      maxPixels: 1e9,
