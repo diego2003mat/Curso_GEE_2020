@@ -1,3 +1,7 @@
+//Pre1. Dibujar un rectangulo llamado pnc que encierre el area del Parque Nacional Cajas
+//Pre2. Dibujar un rectangulo llamado azuay que encierre el area de la Provincia del Azuay
+//Pre3. Dibujar un rectangulo llamado bosque_san_luis dentro de un parche de bosque
+
 //1) AÑADO OBJETO DE AREA DE ESTUDIO
 Map.centerObject(pnc);
 Map.addLayer(pnc,{}, 'Límite PNC', true);
@@ -181,7 +185,7 @@ var mosaic_post=post_S2_incendios.mosaic();
 // Cálculo delta NBR (dNBR)
 //dNBR = NBR pre-fuego - NBR post-fuego
 var dNBR = mosaic_previo.select('NBR').subtract(mosaic_post.select('NBR'))
-Map.addLayer(post_S2_incendios.mean(), leyenda_s2_incendios,"Azuay 12-8A-4 Sentinel");
+Map.addLayer(post_S2_incendios.mean(), {},"Azuay 12-8A-4 Sentinel");
 
 //Rangos https://un-spider.org/node/10959 
 // Define an SLD style of discrete intervals to apply to the image.
