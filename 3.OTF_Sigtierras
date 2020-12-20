@@ -1,0 +1,29 @@
+
+
+var image = ee.Image('users/dpacheco/nv_f4b_e3_esf');
+print(image)
+Map.centerObject(image);
+
+var rgb_otf = {
+  min: 37,
+  max: 202,
+  gamma:1,
+  bands: ['b3','b2','b1'],
+};
+
+
+Map.addLayer(image, rgb_otf, 'OTF nv_f4b_e3');
+
+var ndvi= image.normalizedDifference(['b4', 'b1']).rename('NDVI');
+
+var img1= ee.Image.cat([image, ndvi]); 
+print(img1)
+
+var vis_ndvi = {
+  min: -1,
+  max: 1,
+  bands: ['NDVI'],
+};
+
+Map.addLayer(ndvi, vis_ndvi, 'NDVI nv_f4b_e3');
+
