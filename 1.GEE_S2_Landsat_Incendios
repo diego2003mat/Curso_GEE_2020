@@ -4,7 +4,7 @@
 
 //1) AÑADO OBJETO DE AREA DE ESTUDIO
 Map.centerObject(pnc);
-Map.addLayer(pnc,{}, 'Límite PNC', true);
+Map.addLayer(pnc,{}, 'Límite PNC', false);
 
 //2) AÑADO LAS IMÁGENES SENTINEL 2A Y FUNCIÓN DE MASCARA DE NUBES
 /**
@@ -41,7 +41,7 @@ var visualization = {
 };
 
 //print(dataset_S2);
-Map.addLayer(dataset_S2.mean(), visualization, 'RGB S2');
+Map.addLayer(dataset_S2.mean(), visualization, 'RGB S2',true);
 
 // 3) AÑADO IMAGEN LANDSAT DE AREA DE ESTUDIO CON MÁSCARA DE NUBES
 /**
@@ -78,7 +78,7 @@ var visParams_L8 = {
   gamma: 1.4,
 };
 
-Map.addLayer(dataset_L8.median(), visParams_L8,"RGB Landsat");
+Map.addLayer(dataset_L8.median(), visParams_L8,"RGB Landsat",true);
 
 //4.1) INDICES DE VEGETACION SENTINEL 2
 var addNDVI_S2 = function(image) {
@@ -198,7 +198,7 @@ var sld_intervals =
   '</RasterSymbolizer>';
   
 //Map.addLayer(mosaic_s2_incendios.select("NBR"), sld_intervals,"NBR Azuay Sentinel");
-Map.addLayer(dNBR.sldStyle(sld_intervals), {}, 'NBR Azuay Sentinel');
+Map.addLayer(dNBR.sldStyle(sld_intervals), {}, 'NBR Azuay Sentinel', false);
 
 //7) Guardar en drive
 //https://developers.google.com/earth-engine/guides/exporting
