@@ -1,3 +1,5 @@
+//Pre1. dibujar un rectángulo sobre el area de cuenca llamado cuenca
+
 Map.centerObject(cuenca);
 //Visualización NDVI
 var visParams_NDVI = {
