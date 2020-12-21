@@ -100,8 +100,8 @@ dataset_S2=dataset_S2.map(addEVI2_S2);
 
 
 //print(dataset_S2);
-Map.addLayer(dataset_S2.select("NDVI").median(), {},"NDVI S2");
-Map.addLayer(dataset_S2.select("EVI2").median(), {},"EVI2 S2");
+Map.addLayer(dataset_S2.select("NDVI").median(), {},"NDVI S2", false);
+Map.addLayer(dataset_S2.select("EVI2").median(), {},"EVI2 S2", false);
 
 //4.2) INDICES DE VEGETACION LANDSAT 8
 var addNDVI_L8 = function(image) {
@@ -185,7 +185,7 @@ var mosaic_post=post_S2_incendios.mosaic();
 // Cálculo delta NBR (dNBR)
 //dNBR = NBR pre-fuego - NBR post-fuego
 var dNBR = mosaic_previo.select('NBR').subtract(mosaic_post.select('NBR'))
-Map.addLayer(post_S2_incendios.mean(), {},"Azuay 12-8A-4 Sentinel");
+Map.addLayer(post_S2_incendios.mean(), {},"Azuay 12-8A-4 Sentinel", false);
 
 //Rangos https://un-spider.org/node/10959 
 // Define an SLD style of discrete intervals to apply to the image.
