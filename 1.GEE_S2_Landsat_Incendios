@@ -27,7 +27,7 @@ function maskS2clouds(image) {
 }
 //S2_SR: Level 2A (Surface reflectance)  -- S2: Level 1C(Top Of Atamosphere reflectance)
 var dataset_S2 = ee.ImageCollection('COPERNICUS/S2_SR')
-                  .filterDate('2020-02-06', '2020-08-30') //filtro por rango de fechas
+                  .filterDate('2020-08-04T00:00:01', '2020-08-04T23:59:59') //filtro por rango de fechas
                   // Pre-filter to get less cloudy granules.
                   .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE',100)) //filtro por porcentaje de nubosidad
                   .filterBounds(pnc) // filtro por límite del área del pnc 
