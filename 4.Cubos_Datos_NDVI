@@ -5,7 +5,7 @@ var S2_loop;      //Colección que se repetira en bucle
 var arr_ndvi=[];  //Arreglo que almacenará el NDVI
 var NDVI;
 ///EJEMPLO DE CREACIÓN DE COLECCION PARA UN RANGO DE FECHAS
-Map.centerObject(area_estudio);
+Map.centerObject(zona,15);
 var S2_coleccion = ee.ImageCollection('COPERNICUS/S2_SR')
                   .filterDate('2019-01-01', '2022-12-31')
                   .filterBounds(area_estudio)
