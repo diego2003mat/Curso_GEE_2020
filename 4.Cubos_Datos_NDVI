@@ -60,10 +60,10 @@ print("Cubo de datos:",arr_ndvi);
 
 //GRAFICO UNA MUESTRA DE COBERTURA VEGETAL Y GENERO EL GRÁFICO DE SU SERIE TEMPORAL
 var serie_S2_continuo = ui.Chart.image.seriesByRegion(
-    S2_coleccion, bosque, ee.Reducer.mean(), 'NDVI', 10, 'system:time_start', 'label')
+    S2_coleccion, zona, ee.Reducer.mean(), 'NDVI', 10, 'system:time_start', 'label')
         .setChartType('ScatterChart')
         .setOptions({
-          title: 'Sentinel 2A Bosque San Luis',
+          title: 'Sentinel 2A zona',
           vAxis: {title: 'NDVI'},
           lineWidth: 1,
           pointSize: 4,
@@ -72,10 +72,10 @@ var serie_S2_continuo = ui.Chart.image.seriesByRegion(
 print(serie_S2_continuo);
 
 var serie_S2_lista = ui.Chart.image.seriesByRegion(
-    arr_ndvi, bosque, ee.Reducer.mean(), 'NDVI', 10, 'fecha_actual', 'label')
+    arr_ndvi, zona, ee.Reducer.mean(), 'NDVI', 10, 'fecha_actual', 'label')
         .setChartType('ScatterChart')
         .setOptions({
-          title: 'Sentinel 2A Bosque San Luis',
+          title: 'Sentinel 2A Zona',
           vAxis: {title: 'NDVI'},
           lineWidth: 1,
           pointSize: 4,
