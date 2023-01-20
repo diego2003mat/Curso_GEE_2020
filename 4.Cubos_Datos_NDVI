@@ -1,0 +1,84 @@
+//DECLARACION DE VARIABLES
+var fecha_inicial; //Concateno texto para la fecha inicial
+var fecha_final;  //Concatenar texto para la fecha final
+var S2_loop;      //Colección que se repetira en bucle 
+var arr_ndvi=[];  //Arreglo que almacenará el NDVI
+var NDVI;
+///EJEMPLO DE CREACIÓN DE COLECCION PARA UN RANGO DE FECHAS
+Map.centerObject(area_estudio);
+var S2_coleccion = ee.ImageCollection('COPERNICUS/S2_SR')
+                  .filterDate('2019-01-01', '2022-12-31')
+                  .filterBounds(area_estudio)
+                  // Pre-filter to get less cloudy granules.
+                  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE',50))
+                  .map(function(image){return image.clip(area_estudio)}); // recorte por límite del pnc;
+
+//4.1) FORMULA NDVI 
+var addNDVI_S2 = function(image) {
+return image.addBands(image.normalizedDifference(['B8', 'B4']).rename('NDVI'));
+};
+
+S2_coleccion=S2_coleccion.map(addNDVI_S2).select("NDVI");
+print("Ejemplo coleccion por rango de fechas.",S2_coleccion);
+
+///FIN EJEMPLO DE UNA FECHA
+
+//CREACIÓN DE UN CUBO DE DATOS DE NDVI DE SENTINEL 2
+var fechas=["2019-5-17","2019-08-10","2019-12-13",
+"2020-01-07","2020-02-06","2020-02-11","2020-03-22","2020-04-21", 
+"2020-07-25","2020-08-04","2020-08-24",
+"2021-07-05","2021-12-27","2022-05-21","2022-08-14","2022-08-24","2022-09-08","2022-09-13","2022-09-18"
+];
+
+fechas.forEach(function(actual)
+{
+  fecha_inicial=actual + "T00:00:01";
+  fecha_final=actual + "T23:59:59";
+  //print("Fecha a evaluar:",fecha_inicial, fecha_final);
+  S2_loop = ee.ImageCollection('COPERNICUS/S2_SR')
+                  .filterDate(fecha_inicial, fecha_final)
+                  .filterBounds(area_estudio)
+                  .map(function(image){return image.clip(area_estudio)}); // recorte por límite del pnc;
+  
+  S2_loop=S2_loop.map(addNDVI_S2);
+  //Selecciono el NDVI de la colección y lo transformo a imagen en el arreglo
+  NDVI=S2_loop.median().select("NDVI").set({
+  fecha_actual: actual,
+  banda: "NDVI"
+});
+
+  //Añado del NDVI al mapa 
+  Map.addLayer(NDVI,{},actual,false);
+  //Arreglo que almacena cada NDVI
+  arr_ndvi.push(NDVI);
+  
+  
+}
+);
+
+print("Cubo de datos:",arr_ndvi);
+
+//GRAFICO UNA MUESTRA DE COBERTURA VEGETAL Y GENERO EL GRÁFICO DE SU SERIE TEMPORAL
+var serie_S2_continuo = ui.Chart.image.seriesByRegion(
+    S2_coleccion, bosque, ee.Reducer.mean(), 'NDVI', 10, 'system:time_start', 'label')
+        .setChartType('ScatterChart')
+        .setOptions({
+          title: 'Sentinel 2A Bosque San Luis',
+          vAxis: {title: 'NDVI'},
+          lineWidth: 1,
+          pointSize: 4,
+});
+
+print(serie_S2_continuo);
+
+var serie_S2_lista = ui.Chart.image.seriesByRegion(
+    arr_ndvi, bosque, ee.Reducer.mean(), 'NDVI', 10, 'fecha_actual', 'label')
+        .setChartType('ScatterChart')
+        .setOptions({
+          title: 'Sentinel 2A Bosque San Luis',
+          vAxis: {title: 'NDVI'},
+          lineWidth: 1,
+          pointSize: 4,
+});
+
+print(serie_S2_lista);
