@@ -1,0 +1,65 @@
+//Usando la herramienta de dibujo crear un poligono y llamarlo pnc
+
+/**
+ * Function to mask clouds using the Sentinel-2 QA band
+ * @param {ee.Image} image Sentinel-2 image
+ * @return {ee.Image} cloud masked Sentinel-2 image
+ */
+function maskS2clouds(image) {
+  var qa = image.select('QA60');
+
+  // Bits 10 and 11 are clouds and cirrus, respectively.
+  var cloudBitMask = 1 << 10;
+  var cirrusBitMask = 1 << 11;
+
+  // Both flags should be set to zero, indicating clear conditions.
+  var mask = qa.bitwiseAnd(cloudBitMask).eq(0)
+      .and(qa.bitwiseAnd(cirrusBitMask).eq(0));
+
+  return image.updateMask(mask).divide(10000);
+}
+
+
+var s2_ago2020 = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+                  .filterDate('2020-08-01', '2020-08-31')
+                  // Pre-filter to get less cloudy granules.
+                  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE',80))
+                  .filterBounds(pnc)
+                  .map(maskS2clouds);
+                  
+var s2_ago2022 = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+                  .filterDate('2022-08-01', '2022-08-31')
+                  // Pre-filter to get less cloudy granules.
+                  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE',80))
+                  .filterBounds(pnc)
+                  .map(maskS2clouds);
+
+var addNDVI=function(image){
+  return image.addBands(image.normalizedDifference(["B8","B4"]).rename("NDVI"));
+};
+
+s2_ago2020=s2_ago2020.map(addNDVI);
+print("S2 agosto 2020",s2_ago2020);
+s2_ago2022=s2_ago2022.map(addNDVI);
+print("S2 agosto 2022",s2_ago2022);
+
+//DIFERENCIA NDVI
+var ndvi_2020=s2_ago2020.select('NDVI').median().clip(pnc);
+var ndvi_2022=s2_ago2022.select('NDVI').median().clip(pnc);
+var ndvi_diff = ndvi_2020.subtract(ndvi_2022);
+print(ndvi_diff);
+
+var fc = ee.FeatureCollection([])
+
+Export.image.toDrive({
+  image:ndvi_diff,
+  folder:'GEE',
+  description:'Diff_NDVI_PNC_2020_2022',
+  region: pnc,
+  scale:10
+  
+});
+
+Map.addLayer(ndvi_diff,{},"CAmbios NDVI 2020-2022",true);
+Map.addLayer(s2_ago2020.select('NDVI').mean().clip(pnc),{},"NDVI 2020",true);
+Map.addLayer(s2_ago2022.select('NDVI').mean().clip(pnc),{},"NDVI 2022",true);
